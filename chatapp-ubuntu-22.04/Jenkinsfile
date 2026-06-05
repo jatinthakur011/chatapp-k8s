@@ -2,11 +2,31 @@ pipeline {
     agent any
 
     stages {
-        stage('Test') {
+
+        stage('Test Django SSH') {
+
             steps {
-                sh 'hostname'
-                sh 'pwd'
+
+                sshagent(['controller-key']) {
+
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.255 "
+                        echo ===== SERVER =====
+                        hostname
+
+                        echo ===== USER =====
+                        whoami
+
+                        echo ===== DIRECTORY =====
+                        pwd
+                    "
+                    '''
+                }
+
             }
+
         }
+
     }
+
 }
