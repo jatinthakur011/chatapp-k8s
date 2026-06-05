@@ -11,17 +11,24 @@ pipeline {
                 sshagent(['controller-key']) {
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.255 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.255 "
 
-                    cd /home/ubuntu/chatapp-deploy
+                        echo ===== SERVER =====
+                        hostname
 
-                    git pull origin main
+                        echo ===== USER =====
+                        whoami
 
-                    sudo systemctl restart django
+                        pwd
 
-                    "
+                        cd /home/ubuntu/chatapp-deploy
 
-                    '''
+                        git pull origin main
+
+                        sudo systemctl restart django
+
+                        "
+                        '''
                 }
 
             }
