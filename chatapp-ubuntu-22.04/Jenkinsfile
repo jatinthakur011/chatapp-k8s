@@ -11,14 +11,14 @@ pipeline {
                 sshagent(['controller-key']) {
 
                     sh '''
-                    
-                    rsync -avz --exclude='.git' \
-                    -e "ssh -o StrictHostKeyChecking=no" \
-                    /var/lib/jenkins/workspace/chat-app-deploy/chatapp-ubuntu-22.04/ \
-                    ubuntu@172.31.46.255:/home/ubuntu/chatapp-ubuntu-22.04/
-
                     ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.255 "
+
+                    cd /home/ubuntu/chatapp-deploy
+
+                    git pull origin main
+
                     sudo systemctl restart django
+
                     "
 
                     '''
