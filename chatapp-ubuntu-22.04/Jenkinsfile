@@ -22,9 +22,12 @@ pipeline {
                 sshagent(['controller-key']) {
 
                     sh '''
-                    rsync -av \
+                    rsync -av  --delete\
                     --exclude='.git' \
                     --exclude='venv' \
+                    --exclude='db.sqlite3' \
+                    --exclude '__pycache__' \
+                     --exclude '*.pyc' \
                     -e "ssh -o StrictHostKeyChecking=no" \
                     ${LOCAL_PATH}/ \
                     ${DJANGO_USER}@${DJANGO_HOST}:${REMOTE_PATH}/
