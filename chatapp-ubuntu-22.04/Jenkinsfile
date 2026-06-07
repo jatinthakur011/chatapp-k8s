@@ -12,6 +12,27 @@ pipeline {
         LOCAL_PATH = "/var/lib/jenkins/workspace/chat-app-deploy/chatapp-ubuntu-22.04"
 
     }
+    stages {
+
+        stage('SonarQube Analysis') {
+
+            steps {
+
+                script {
+
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('SonarQube') {
+
+                        sh "${scannerHome}/bin/sonar-scanner"
+
+                    }
+
+                }
+
+            }
+
+        }
 
     stages {
 
