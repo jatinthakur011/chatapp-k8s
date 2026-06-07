@@ -10,7 +10,6 @@ pipeline {
         REMOTE_PATH = "/home/ubuntu/chatapp-deploy/chatapp-ubuntu-22.04"
 
         LOCAL_PATH = "/var/lib/jenkins/workspace/chat-app-deploy/chatapp-ubuntu-22.04"
-
     }
 
     stages {
@@ -19,20 +18,20 @@ pipeline {
 
             steps {
 
-                script {
+                dir('chatapp-ubuntu-22.04') {
 
-                    def scannerHome = tool 'SonarScanner'
+                    script {
 
-                    withSonarQubeEnv('SonarQube') {
+                        def scannerHome = tool 'SonarScanner'
 
-                        sh "${scannerHome}/bin/sonar-scanner"
+                        withSonarQubeEnv('SonarQube') {
 
+                            sh "${scannerHome}/bin/sonar-scanner"
+
+                        }
                     }
-
                 }
-
             }
-
         }
 
         stage('Deploy Files') {
@@ -54,9 +53,7 @@ pipeline {
                     '''
 
                 }
-
             }
-
         }
 
         stage('Run Migration') {
@@ -79,9 +76,7 @@ pipeline {
                     '''
 
                 }
-
             }
-
         }
 
         stage('Restart Django') {
@@ -100,9 +95,7 @@ pipeline {
                     '''
 
                 }
-
             }
-
         }
 
         stage('Verify Service') {
@@ -127,11 +120,7 @@ pipeline {
                     '''
 
                 }
-
             }
-
         }
-
     }
-
 }
