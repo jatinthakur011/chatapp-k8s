@@ -12,6 +12,7 @@ pipeline {
         LOCAL_PATH = "/var/lib/jenkins/workspace/chat-app-deploy/chatapp-ubuntu-22.04"
 
     }
+
     stages {
 
         stage('SonarQube Analysis') {
@@ -34,8 +35,6 @@ pipeline {
 
         }
 
-    stages {
-
         stage('Deploy Files') {
 
             steps {
@@ -43,16 +42,17 @@ pipeline {
                 sshagent(['controller-key']) {
 
                     sh '''
-                    rsync -av  --delete\
+                    rsync -av --delete \
                     --exclude='.git' \
                     --exclude='venv' \
                     --exclude='db.sqlite3' \
-                    --exclude '__pycache__' \
-                     --exclude '*.pyc' \
+                    --exclude='__pycache__' \
+                    --exclude='*.pyc' \
                     -e "ssh -o StrictHostKeyChecking=no" \
                     ${LOCAL_PATH}/ \
                     ${DJANGO_USER}@${DJANGO_HOST}:${REMOTE_PATH}/
                     '''
+
                 }
 
             }
@@ -77,6 +77,7 @@ pipeline {
 
                     "
                     '''
+
                 }
 
             }
@@ -97,6 +98,7 @@ pipeline {
 
                     "
                     '''
+
                 }
 
             }
@@ -123,6 +125,7 @@ pipeline {
 
                     "
                     '''
+
                 }
 
             }
