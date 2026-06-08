@@ -2,6 +2,10 @@ pipeline {
 
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
 
         DJANGO_HOST = "172.31.46.255"
@@ -40,9 +44,27 @@ pipeline {
                             sh "${scannerHome}/bin/sonar-scanner"
 
                         }
+
                     }
+
                 }
+
             }
+
+        }
+
+        stage('Quality Gate') {
+
+            steps {
+
+                timeout(time: 10, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
+
+                }
+
+            }
+
         }
 
         stage('Deploy Files') {
@@ -62,8 +84,11 @@ pipeline {
                     ${LOCAL_PATH}/ \
                     ${DJANGO_USER}@${DJANGO_HOST}:${REMOTE_PATH}/
                     '''
+
                 }
+
             }
+
         }
 
         stage('Run Migration') {
@@ -84,8 +109,11 @@ pipeline {
 
                     "
                     '''
+
                 }
+
             }
+
         }
 
         stage('Restart Django') {
@@ -102,8 +130,11 @@ pipeline {
 
                     "
                     '''
+
                 }
+
             }
+
         }
 
         stage('Verify Service') {
@@ -126,8 +157,13 @@ pipeline {
 
                     "
                     '''
+
                 }
+
             }
+
         }
+
     }
+
 }
