@@ -57,7 +57,7 @@ pipeline {
 
             steps {
 
-                timeout(time: 10, unit: 'MINUTES') {
+                timeout(time: 1, unit: 'MINUTES') {
 
                     waitForQualityGate abortPipeline: true
 
@@ -148,11 +148,9 @@ pipeline {
                     ${DJANGO_USER}@${DJANGO_HOST} "
 
                     echo ===== SERVER =====
-
                     hostname
 
                     echo ===== DJANGO STATUS =====
-
                     sudo systemctl is-active django
 
                     "
