@@ -1,96 +1,90 @@
 pipeline {
 
-```
-agent any
+    agent any
 
-environment {
+    environment {
 
-    AWS_ACCOUNT_ID = "730972070019"
-    AWS_REGION = "eu-north-1"
+        AWS_ACCOUNT_ID = "730972070019"
+        AWS_REGION = "eu-north-1"
 
-    ECR_REPO = "chatapp"
+        ECR_REPO = "chatapp"
 
-    IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG = "${BUILD_NUMBER}"
 
-    IMAGE_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
-}
+        IMAGE_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
+    }
 
-stages {
+    stages {
 
-    stage('Checkout') {
+        stage('Checkout') {
 
-        steps {
+            steps {
 
-            git branch: 'main',
-                url: 'https://github.com/jatinthakur011/chatapp-k8s.git'
+                git branch: 'main',
+                    url: 'https://github.com/jatinthakur011/chatapp-k8s.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+
+            steps {
+
+                sh '''
+                docker build -t ${IMAGE_URI} .
+                '''
+            }
+        }
+
+        stage('Login ECR') {
+
+            steps {
+
+                sh '''
+                aws ecr get-login-password --region ${AWS_REGION} | \
+                docker login \
+                --username AWS \
+                --password-stdin \
+                ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                '''
+            }
+        }
+
+        stage('Push Image To ECR') {
+
+            steps {
+
+                sh '''
+                docker push ${IMAGE_URI}
+                '''
+            }
+        }
+
+        stage('Deploy To EKS') {
+
+            steps {
+
+                sh '''
+                kubectl set image deployment/django \
+                django=${IMAGE_URI} \
+                -n chatapp
+
+                kubectl rollout status deployment/django \
+                -n chatapp
+                '''
+            }
         }
     }
 
-    stage('Build Docker Image') {
+    post {
 
-        steps {
+        success {
 
-            sh '''
-            docker build -t ${ECR_REPO}:${IMAGE_TAG} .
-            '''
+            echo "Deployment Successful"
+        }
+
+        failure {
+
+            echo "Deployment Failed"
         }
     }
-
-    stage('Login ECR') {
-
-        steps {
-
-            sh '''
-            aws ecr get-login-password --region ${AWS_REGION} | \
-            docker login \
-            --username AWS \
-            --password-stdin \
-            ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-            '''
-        }
-    }
-
-    stage('Push Image To ECR') {
-
-        steps {
-
-            sh '''
-            docker tag ${ECR_REPO}:${IMAGE_TAG} ${IMAGE_URI}
-
-            docker push ${IMAGE_URI}
-            '''
-        }
-    }
-
-    stage('Deploy To EKS') {
-
-        steps {
-
-            sh '''
-            kubectl set image deployment/django \
-            django=${IMAGE_URI} \
-            -n chatapp
-
-            kubectl rollout status deployment/django \
-            -n chatapp
-            '''
-        }
-    }
-
-}
-
-post {
-
-    success {
-
-        echo "Deployment Successful"
-    }
-
-    failure {
-
-        echo "Deployment Failed"
-    }
-}
-```
-
 }
