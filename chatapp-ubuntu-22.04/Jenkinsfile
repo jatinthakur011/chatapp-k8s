@@ -1,169 +1,96 @@
 pipeline {
 
-    agent {
-        label 'django-agent'
+```
+agent any
+
+environment {
+
+    AWS_ACCOUNT_ID = "730972070019"
+    AWS_REGION = "eu-north-1"
+
+    ECR_REPO = "chatapp"
+
+    IMAGE_TAG = "${BUILD_NUMBER}"
+
+    IMAGE_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
+}
+
+stages {
+
+    stage('Checkout') {
+
+        steps {
+
+            git branch: 'main',
+                url: 'https://github.com/jatinthakur011/chatapp-k8s.git'
+        }
     }
 
-    options {
-        skipDefaultCheckout(true)
+    stage('Build Docker Image') {
+
+        steps {
+
+            sh '''
+            docker build -t ${ECR_REPO}:${IMAGE_TAG} .
+            '''
+        }
     }
 
-    environment {
+    stage('Login ECR') {
 
-        DJANGO_HOST = "172.31.46.255"
-        DJANGO_USER = "ubuntu"
+        steps {
 
-        REMOTE_PATH = "/home/ubuntu/chatapp-deploy/chatapp-ubuntu-22.04"
-
-        LOCAL_PATH = "${WORKSPACE}/chatapp-ubuntu-22.04"
+            sh '''
+            aws ecr get-login-password --region ${AWS_REGION} | \
+            docker login \
+            --username AWS \
+            --password-stdin \
+            ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+            '''
+        }
     }
 
-    stages {
+    stage('Push Image To ECR') {
 
-        stage('Checkout Code') {
+        steps {
 
-            steps {
+            sh '''
+            docker tag ${ECR_REPO}:${IMAGE_TAG} ${IMAGE_URI}
 
-                git branch: 'main',
-                    url: 'https://github.com/jatinthakur011/chat-app.git'
-
-            }
-
+            docker push ${IMAGE_URI}
+            '''
         }
-
-        stage('SonarQube Analysis') {
-
-            steps {
-
-                dir('chatapp-ubuntu-22.04') {
-
-                    script {
-
-                        def scannerHome = tool 'SonarScanner'
-
-                        withSonarQubeEnv('SonarQube') {
-
-                            sh "${scannerHome}/bin/sonar-scanner"
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-        }
-
-        stage('Quality Gate') {
-
-            steps {
-
-                timeout(time: 5, unit: 'MINUTES') {
-
-                    waitForQualityGate abortPipeline: true
-
-                }
-
-            }
-
-        }
-
-        stage('Deploy Files') {
-
-            steps {
-
-                sshagent(['agent-key']) {
-
-                    sh '''
-                    rsync -av --delete \
-                    --exclude='.git' \
-                    --exclude='venv' \
-                    --exclude='db.sqlite3' \
-                    --exclude='__pycache__' \
-                    --exclude='*.pyc' \
-                    -e "ssh -o StrictHostKeyChecking=no" \
-                    ${LOCAL_PATH}/ \
-                    ${DJANGO_USER}@${DJANGO_HOST}:${REMOTE_PATH}/
-                    '''
-
-                }
-
-            }
-
-        }
-
-        stage('Run Migration') {
-
-            steps {
-
-                sshagent(['agent-key']) {
-
-                    sh '''
-                    ssh -o StrictHostKeyChecking=no \
-                    ${DJANGO_USER}@${DJANGO_HOST} "
-
-                    cd ${REMOTE_PATH}/fundoo
-
-                    source venv/bin/activate
-
-                    python manage.py migrate --noinput
-
-                    "
-                    '''
-
-                }
-
-            }
-
-        }
-
-        stage('Restart Django') {
-
-            steps {
-
-                sshagent(['agent-key']) {
-
-                    sh '''
-                    ssh -o StrictHostKeyChecking=no \
-                    ${DJANGO_USER}@${DJANGO_HOST} "
-
-                    sudo systemctl restart django
-
-                    "
-                    '''
-
-                }
-
-            }
-
-        }
-
-        stage('Verify Service') {
-
-            steps {
-
-                sshagent(['agent-key']) {
-
-                    sh '''
-                    ssh -o StrictHostKeyChecking=no \
-                    ${DJANGO_USER}@${DJANGO_HOST} "
-
-                    echo ===== SERVER =====
-                    hostname
-
-                    echo ===== DJANGO STATUS =====
-                    sudo systemctl is-active django
-
-                    "
-                    '''
-
-                }
-
-            }
-
-        }
-
     }
+
+    stage('Deploy To EKS') {
+
+        steps {
+
+            sh '''
+            kubectl set image deployment/django \
+            django=${IMAGE_URI} \
+            -n chatapp
+
+            kubectl rollout status deployment/django \
+            -n chatapp
+            '''
+        }
+    }
+
+}
+
+post {
+
+    success {
+
+        echo "Deployment Successful"
+    }
+
+    failure {
+
+        echo "Deployment Failed"
+    }
+}
+```
 
 }
